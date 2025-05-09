@@ -1,0 +1,21 @@
+centre: [0.0, 0.0]
+scale: 1.2
+resolution: [5440, 1440]
+super_sampling: 2
+
+start: [0.0, 0.0]
+radius: 1.0
+num_samples: 100000
+max_iter: 1000
+draw_after: 10
+
+attractor: !Clifford
+  a: 1.5
+  b: -1.8
+  c: 1.6
+  d: 0.9
+
+image_name: "clifford/new.png"
+log: True
+gamma: 1.0
+colour_map: "magma"
