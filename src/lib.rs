@@ -96,6 +96,7 @@
     clippy::separated_literal_suffix,
     reason = "Must chose between separated and unseparated literal suffixes."
 )]
+#![allow(clippy::single_call_fn, reason = "Single call functions may make code more maintainable.")]
 #![allow(clippy::std_instead_of_core, reason = "Prefer std for consistency.")]
 #![allow(
     clippy::unreadable_literal,
@@ -105,9 +106,11 @@
 #![allow(clippy::unwrap_used, reason = "In some cases unwrap can be guaranteed to succeed.")]
 
 mod attractor;
-mod complex;
+mod generator;
 mod render;
+mod settings;
 
-pub use attractor::Attractor;
-pub use complex::Complex;
+pub use attractor::{Attractor, Clifford};
+pub use generator::{Aabb, Circle, Generator};
 pub use render::render;
+pub use settings::Settings;

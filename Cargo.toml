@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 indicatif = { version = "0.17.11", features = ["rayon"] }
+nalgebra = { version = "0.33.2", features = ["rayon"] }
 nav = "0.1.6"
 ndarray = { version = "0.16.1", features = ["rayon"] }
 num-traits = "0.2.19"

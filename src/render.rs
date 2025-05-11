@@ -1,147 +1,139 @@
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
+use nalgebra::Complex;
 use ndarray::Array2;
-use num_traits::{Float, FloatConst, NumCast};
-use rand::{Rng, distr::uniform::SampleUniform, rng};
+use num_traits::{Float, FromPrimitive, NumCast};
+use rand::rng;
 use rayon::prelude::*;
-use std::{
-    fmt::Display,
-    ops::{Add, Div, Mul, Sub},
-};
+use std::sync::Arc;
 
-use crate::{Attractor, Complex};
+use crate::{Attractor, Generator, Settings};
 
-fn create_position_to_pixel_mapper<T: Float + NumCast + Display>(
+/// Create a lambda function to map a position in the complex plane to a pixel in the image.
+#[inline]
+fn create_position_to_pixel_mapper<T: Send + Sync + Float + NumCast>(
     offset: Complex<T>,
     scale: T,
-    resolution: [u32; 2],
-) -> impl Fn(&Complex<T>) -> Option<[usize; 2]> {
-    let x_res = T::from(resolution[0]).unwrap();
-    let y_res = T::from(resolution[1]).unwrap();
+    resolution: [usize; 2],
+) -> impl Fn(&Complex<T>) -> Option<[usize; 2]> + Send + Sync {
+    let y_res = T::from(resolution[0]).unwrap();
+    let x_res = T::from(resolution[1]).unwrap();
+
     let aspect_ratio = x_res / y_res;
-    let width = scale * aspect_ratio;
+
     let height = scale;
-    let half_width = width / T::from(2.0).unwrap();
+    let width = scale * aspect_ratio;
     let half_height = height / T::from(2.0).unwrap();
-    let max_x = x_res - T::one();
+    let half_width = width / T::from(2.0).unwrap();
+
     let max_y = y_res - T::one();
+    let max_x = x_res - T::one();
 
     move |p: &Complex<T>| {
-        // Shift the point by the offset to recenter the image.
-        let shifted_real = p.real - offset.real;
-        let shifted_imag = p.imag - offset.imag;
-        let x = ((shifted_real + half_width) / width) * max_x;
-        let y = ((half_height - shifted_imag) / height) * max_y;
-
-        if x >= T::zero() && x < x_res && y >= T::zero() && y < y_res {
-            Some([x.to_usize().unwrap(), y.to_usize().unwrap()])
-        } else {
-            None
-        }
+        let shifted_re = p.re - offset.re;
+        let shifted_im = p.im - offset.im;
+        let y = ((half_height - shifted_im) / height) * max_y;
+        let x = ((half_width - shifted_re) / width) * max_x;
+        (y >= T::zero() && y < y_res && x >= T::zero() && x < x_res).then(|| [y.to_usize().unwrap(), x.to_usize().unwrap()])
     }
 }
 
-fn generate_initial_positions<T>(start: Complex<T>, radius: T, num_samples: u32) -> Vec<Complex<T>>
+/// Multi-threaded rendering of the attractor.
+#[inline]
+pub fn render<T, A: Sync + Attractor<T>, G: Sync + Generator<T>>(settings: &Settings<T, A, G>) -> Array2<u32>
 where
-    T: Float + FloatConst + NumCast + SampleUniform,
+    T: Float + NumCast + FromPrimitive + Send + Sync,
 {
-    let mut rng = rng();
-    let mut positions = Vec::with_capacity(num_samples as usize);
-    let zero = T::from(0.0).unwrap();
-    let tau = T::TAU();
-    for _ in 0..num_samples {
-        let theta = rng.random_range(zero..tau);
-        let rho = rng.random_range(zero..radius).sqrt();
-        let x = start.real + rho * theta.cos();
-        let y = start.imag + rho * theta.sin();
-        positions.push(Complex::new(x, y));
-    }
-    positions
-}
-
-pub fn render<T>(
-    centre: Complex<T>,
-    scale: T,
-    resolution: [u32; 2],
-
-    start: Complex<T>,
-    radius: T,
-    num_samples: u32,
-
-    max_iter: u32,
-    draw_after: u32,
-    attractor: &Attractor<T>,
-) -> Array2<u32>
-where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Div<Output = T>
-        + PartialOrd
-        + NumCast
-        + Float
-        + FloatConst
-        + SampleUniform
-        + Send
-        + Sync
-        + Display,
-{
-    let initial_positions = generate_initial_positions(start, radius, num_samples);
-
-    // Render and sum attractors concurrently.
-    let pb = ProgressBar::new(initial_positions.len() as u64);
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {wide_bar} {pos}/{len} ETA: {eta}")
+    let progress_bar = ProgressBar::new(settings.num_samples as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:50.cyan/blue} {pos}/{len} samples ({percent}%) - {eta_precise} remaining")
             .unwrap()
-            .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"),
+            .progress_chars("█▓▒░"),
     );
+    progress_bar.set_message("Rendering fractal...");
+    let progress_bar = Arc::new(progress_bar);
 
-    let shape = (resolution[1] as usize, resolution[0] as usize);
-    initial_positions
-        .par_iter()
-        .progress_with(pb)
-        .map(|&pos| render_attractor_path(pos, centre, max_iter, draw_after, scale, resolution, &attractor))
-        .reduce(|| Array2::zeros(shape), |a, b| a + b)
+    // Parallelize the group rendering (each group is single-threaded).
+    let group_counts: Vec<Array2<u32>> = (0..settings.num_groups)
+        .into_par_iter()
+        .map(|_group_index| render_group(settings, Arc::clone(&progress_bar)))
+        .collect();
+    progress_bar.finish_with_message("Rendering complete!");
+
+    let mut total_counts = Array2::zeros(settings.resolution);
+    for counts in group_counts {
+        total_counts += &counts;
+    }
+    total_counts
 }
 
-/// Renders a single part of a point orbiting an attractor by iterating its dynamics and accumulating hits in a pixel grid.
-fn render_attractor_path<T>(
-    start: Complex<T>,
-    centre: Complex<T>,
-    max_iter: u32,
-    draw_after: u32,
-    scale: T,
-    resolution: [u32; 2],
-    attractor: &Attractor<T>,
+/// Single-threaded rendering of the attractor.
+#[inline]
+pub fn render_group<T, A: Sync + Attractor<T>, G: Sync + Generator<T>>(
+    settings: &Settings<T, A, G>,
+    progress_bar: Arc<ProgressBar>,
 ) -> Array2<u32>
 where
-    T: Copy
-        + Add<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>
-        + Div<Output = T>
-        + PartialOrd
-        + NumCast
-        + Float
-        + Send
-        + Sync
-        + std::fmt::Display,
+    T: Float + NumCast + FromPrimitive + Send + Sync,
 {
-    let [x_res, y_res] = resolution;
-    let mut pixels = Array2::<u32>::zeros((y_res as usize, x_res as usize));
-    let pixel_mapper = create_position_to_pixel_mapper(centre, scale, resolution);
+    let offset = Complex::new(settings.offset[0], settings.offset[1]);
+    let mapper = create_position_to_pixel_mapper(offset, settings.scale, settings.resolution);
 
-    let mut pos = start;
-    for n in 0..max_iter {
-        pos = attractor.iterate(pos);
+    // Create a counts array for this group
+    let mut counts = Array2::zeros(settings.resolution);
+    let mut rng = rng();
 
-        if n < draw_after {
-            continue;
-        }
-        if let Some([x, y]) = pixel_mapper(&pos) {
-            pixels[[y, x]] += 1;
+    // Process samples sequentially
+    for i in 0..(settings.num_samples / settings.num_groups) {
+        let pos = settings.generator.sample(&mut rng);
+        render_path(
+            settings.attractor,
+            &mapper,
+            pos,
+            settings.max_iter,
+            settings.warmup,
+            &mut counts,
+        );
+
+        // Update progress bar every 100 samples to avoid too frequent updates
+        if i % 100 == 0 {
+            progress_bar.inc(100);
         }
     }
 
-    pixels
+    // Ensure we account for any remaining samples in the progress bar
+    let remainder = (settings.num_samples / settings.num_groups) % 100;
+    if remainder > 0 {
+        progress_bar.inc(remainder as u64);
+    }
+
+    counts
+}
+
+/// Capture the path of a single sample point.
+#[inline]
+fn render_path<T>(
+    attractor: &impl Attractor<T>,
+    mapper: impl Fn(&Complex<T>) -> Option<[usize; 2]>,
+    start: Complex<T>,
+    max_iter: usize,
+    warmup: usize,
+    counts: &mut Array2<u32>,
+) where
+    T: Float + NumCast + FromPrimitive,
+{
+    let mut pos = start;
+
+    // Warmup phase - skip initial iterations to reach the attractor
+    for _ in 0..warmup {
+        pos = attractor.iterate(pos);
+    }
+
+    // Count phase
+    for _ in 0..max_iter {
+        pos = attractor.iterate(pos);
+        if let Some([x, y]) = mapper(&pos) {
+            counts[[x, y]] += 1;
+        }
+    }
 }
