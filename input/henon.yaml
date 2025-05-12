@@ -1,0 +1,26 @@
+attractor: !Henon
+  a: !Slide
+    - 1.4
+    - 1.6
+  b: !Slide
+    - 0.4
+    - 0.5
+num_frames: 100
+rendering:
+  resolution: [256, 256]
+  offset: [0.0, 0.0]
+  scale: 5.0
+colour_map:
+  - "#000000"
+  - "#FFFFFF"
+processing:
+  num_samples: 1000
+  num_groups: 100
+post_processing:
+  apply_log: true
+  colour_map: "viridis"
+  output_dir: "output"
+  image_name: "henon.png"
+simulation:
+  max_iter: 10000
+  warmup: 1000

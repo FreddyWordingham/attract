@@ -1,3 +1,10 @@
+//! # Attract
+//!
+//! A Rust library for visualising dynamical systems, particularly strange attractors.
+//!
+//! This crate provides tools for generating and rendering mathematical attractors,
+//! with configurable settings and multiple sampling methods.
+
 // #![deny(absolute_paths_not_starting_with_crate)]
 // #![deny(ambiguous_negative_literals)]
 // #![deny(dead_code)]
@@ -15,46 +22,46 @@
 // #![deny(keyword_idents_2018)]
 // #![deny(keyword_idents_2024)]
 // #![deny(keyword_idents)]
-// #![deny(let_underscore_drop)]
-// #![deny(macro_use_extern_crate)]
-// #![deny(meta_variable_misuse)]
-// #![deny(missing_copy_implementations)]
+#![deny(let_underscore_drop)]
+#![deny(macro_use_extern_crate)]
+#![deny(meta_variable_misuse)]
+#![deny(missing_copy_implementations)]
 // #![deny(missing_debug_implementations)]
-// #![deny(missing_docs)]
-// #![deny(missing_unsafe_on_extern)]
-// #![deny(non_ascii_idents)]
-// #![deny(nonstandard_style)]
-// #![deny(path_statements)]
-// #![deny(redundant_imports)]
-// #![deny(redundant_lifetimes)]
-// #![deny(rustdoc::broken_intra_doc_links)]
-// #![deny(single_use_lifetimes)]
-// #![deny(tail_expr_drop_order)]
-// #![deny(trivial_casts)]
-// #![deny(trivial_numeric_casts)]
-// #![deny(unit_bindings)]
-// #![deny(unnameable_types)]
-// #![deny(unreachable_code)]
-// #![deny(unreachable_pub)]
-// #![deny(unsafe_attr_outside_unsafe)]
-// #![deny(unsafe_code)]
-// #![deny(unsafe_op_in_unsafe_fn)]
-// #![deny(unstable_features)]
-// #![deny(unused_assignments)]
-// #![deny(unused_crate_dependencies)]
-// #![deny(unused_extern_crates)]
-// #![deny(unused_import_braces)]
-// #![deny(unused_imports)]
-// #![deny(unused_lifetimes)]
-// #![deny(unused_macro_rules)]
-// #![deny(unused_must_use)]
-// #![deny(unused_mut)]
-// #![deny(unused_qualifications)]
-// #![deny(unused_results)]
-// #![deny(unused_variables)]
-// #![deny(unused)]
-// #![deny(variant_size_differences)]
-// #![deny(warnings)]
+#![deny(missing_docs)]
+#![deny(missing_unsafe_on_extern)]
+#![deny(non_ascii_idents)]
+#![deny(nonstandard_style)]
+#![deny(path_statements)]
+#![deny(redundant_imports)]
+#![deny(redundant_lifetimes)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![deny(single_use_lifetimes)]
+#![deny(tail_expr_drop_order)]
+#![deny(trivial_casts)]
+#![deny(trivial_numeric_casts)]
+#![deny(unit_bindings)]
+#![deny(unnameable_types)]
+#![deny(unreachable_code)]
+#![deny(unreachable_pub)]
+#![deny(unsafe_attr_outside_unsafe)]
+#![deny(unsafe_code)]
+#![deny(unsafe_op_in_unsafe_fn)]
+#![deny(unstable_features)]
+#![deny(unused_assignments)]
+#![deny(unused_crate_dependencies)]
+#![deny(unused_extern_crates)]
+#![deny(unused_import_braces)]
+#![deny(unused_imports)]
+#![deny(unused_lifetimes)]
+#![deny(unused_macro_rules)]
+#![deny(unused_must_use)]
+#![deny(unused_mut)]
+#![deny(unused_qualifications)]
+#![deny(unused_results)]
+#![deny(unused_variables)]
+#![deny(unused)]
+#![deny(variant_size_differences)]
+#![deny(warnings)]
 #![deny(clippy::all)]
 #![deny(clippy::cargo)]
 #![deny(clippy::complexity)]
@@ -77,6 +84,7 @@
 #![allow(clippy::implicit_return, reason = "Implicit returns are idiomatic in Rust.")]
 #![allow(clippy::indexing_slicing, reason = "Too restrictive for this crate.")]
 #![allow(clippy::integer_division_remainder_used, reason = "Too restrictive for this crate.")]
+#![allow(clippy::integer_division, reason = "Too restrictive for this crate.")]
 #![allow(
     clippy::min_ident_chars,
     reason = "Whilst short variable names are not always ideal they are often clear in context."
@@ -97,6 +105,11 @@
     reason = "Must chose between separated and unseparated literal suffixes."
 )]
 #![allow(clippy::single_call_fn, reason = "Single call functions may make code more maintainable.")]
+#![allow(
+    clippy::single_char_lifetime_names,
+    reason = "Single characters lifetime names are idiomatic in Rust."
+)]
+#![allow(clippy::std_instead_of_alloc, reason = "Prefer std for consistency.")]
 #![allow(clippy::std_instead_of_core, reason = "Prefer std for consistency.")]
 #![allow(
     clippy::unreadable_literal,
@@ -110,7 +123,7 @@ mod generator;
 mod render;
 mod settings;
 
-pub use attractor::{Attractor, Clifford};
-pub use generator::{Aabb, Circle, Generator};
+pub use attractor::{Attractor, Clifford, DeJong, Henon};
+pub use generator::{Aabb, Circle, Gaussian, Generator};
 pub use render::render;
 pub use settings::Settings;

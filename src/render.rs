@@ -1,3 +1,8 @@
+//! Rendering functions for attractors.
+//!
+//! This module provides functionality to render attractors by iterating their equations
+//! and counting the density of points in a discretized grid.
+
 use indicatif::{ProgressBar, ProgressStyle};
 use nalgebra::Complex;
 use ndarray::Array2;
@@ -38,27 +43,31 @@ fn create_position_to_pixel_mapper<T: Send + Sync + Float + NumCast>(
 }
 
 /// Multi-threaded rendering of the attractor.
+///
+/// # Panics
+///
+/// This function will not panic.
 #[inline]
-pub fn render<T, A: Sync + Attractor<T>, G: Sync + Generator<T>>(settings: &Settings<T, A, G>) -> Array2<u32>
+pub fn render<T, G: Sync + Generator<T>>(settings: &Settings<T, G>) -> Array2<u32>
 where
     T: Float + NumCast + FromPrimitive + Send + Sync,
 {
-    let progress_bar = ProgressBar::new(settings.num_samples as u64);
+    let progress_bar = ProgressBar::new(u64::try_from(settings.num_samples).unwrap());
     progress_bar.set_style(
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] {bar:50.cyan/blue} {pos}/{len} samples ({percent}%) - {eta_precise} remaining")
             .unwrap()
-            .progress_chars("█▓▒░"),
+            .progress_chars("\u{2588}\u{2593}\u{2592}\u{2591}"),
     );
     progress_bar.set_message("Rendering fractal...");
-    let progress_bar = Arc::new(progress_bar);
+    let arc_progress_bar = Arc::new(progress_bar);
 
     // Parallelize the group rendering (each group is single-threaded).
     let group_counts: Vec<Array2<u32>> = (0..settings.num_groups)
         .into_par_iter()
-        .map(|_group_index| render_group(settings, Arc::clone(&progress_bar)))
+        .map(|_group_index| render_group(settings, &Arc::clone(&arc_progress_bar)))
         .collect();
-    progress_bar.finish_with_message("Rendering complete!");
+    arc_progress_bar.finish_with_message("Rendering complete!");
 
     let mut total_counts = Array2::zeros(settings.resolution);
     for counts in group_counts {
@@ -69,10 +78,7 @@ where
 
 /// Single-threaded rendering of the attractor.
 #[inline]
-pub fn render_group<T, A: Sync + Attractor<T>, G: Sync + Generator<T>>(
-    settings: &Settings<T, A, G>,
-    progress_bar: Arc<ProgressBar>,
-) -> Array2<u32>
+fn render_group<T, G: Sync + Generator<T>>(settings: &Settings<T, G>, progress_bar: &Arc<ProgressBar>) -> Array2<u32>
 where
     T: Float + NumCast + FromPrimitive + Send + Sync,
 {
@@ -87,7 +93,7 @@ where
     for i in 0..(settings.num_samples / settings.num_groups) {
         let pos = settings.generator.sample(&mut rng);
         render_path(
-            settings.attractor,
+            settings.attractor.as_ref(),
             &mapper,
             pos,
             settings.max_iter,
@@ -104,7 +110,7 @@ where
     // Ensure we account for any remaining samples in the progress bar
     let remainder = (settings.num_samples / settings.num_groups) % 100;
     if remainder > 0 {
-        progress_bar.inc(remainder as u64);
+        progress_bar.inc(u64::try_from(remainder).unwrap());
     }
 
     counts
@@ -113,7 +119,7 @@ where
 /// Capture the path of a single sample point.
 #[inline]
 fn render_path<T>(
-    attractor: &impl Attractor<T>,
+    attractor: &(dyn Attractor<T> + Sync),
     mapper: impl Fn(&Complex<T>) -> Option<[usize; 2]>,
     start: Complex<T>,
     max_iter: usize,

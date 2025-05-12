@@ -1,68 +1,78 @@
-use attract::{Circle, Clifford, Settings, render};
+use attract::{Clifford, Gaussian, Settings, render};
 use chromatic::{Colour, ColourMap, Lab};
 use nalgebra::Complex;
 use nav::Transform;
 use photo::Image;
 
-type Precision = f32;
+#[path = "./common.rs"]
+mod common;
+use common::MAGMA as CMAP;
 
+// Precision
+type P = f32;
+
+// Clifford attractor parameters
+const A: P = -1.4;
+const B: P = 1.6;
+const C: P = 1.3;
+const D: P = 0.7;
+
+// Gaussian generator parameters
+const CENTRE: [P; 2] = [0.0, 0.0];
+const STD_DEV: P = 1.0;
+
+// Rendering parameters
+const RESOLUTION: [usize; 2] = [1000, 1000];
+const OFFSET: [P; 2] = [0.0, 0.0];
+const SCALE: P = 5.5;
+
+// Post-processing parameters
+const APPLY_LOG: bool = true;
+
+// Processing parameters
 const NUM_SAMPLES: usize = 100000;
 const NUM_GROUPS: usize = 100;
+
+// Simulation parameters
 const MAX_ITER: usize = 10000;
 const WARMUP: usize = 1000;
 
-const OFFSET: [Precision; 2] = [0.0, 0.0];
-const SCALE: Precision = 6.0;
-
-const RESOLUTION: [usize; 2] = [1000, 1000];
-const APPLY_LOG: bool = true;
-const COLOURS: [&str; 21] = [
-    "#FFFFFF", "#000004", "#08051D", "#190C3E", "#2F0A5B", "#470B6A", "#5C126E", "#721A6E", "#87216B", "#9B2964", "#B1325A",
-    "#C43C4E", "#D74B3F", "#E55C30", "#F06F20", "#F8870E", "#FC9F07", "#FBBA1F", "#F7D340", "#F1ED71", "#FCFFA4",
-];
-
+// Output parameters
 const OUTPUT_DIR: &str = "output";
 const IMAGE_NAME: &str = "clifford.png";
 
 fn main() {
-    let a = 1.26;
-    let b = -1.35;
-    let c = 1.88;
-    let d = -0.82;
-    println!("Random parameters: a = {}, b = {}, c = {}, d = {}", a, b, c, d);
-    let attractor = Clifford::new(a, b, c, d);
-    let generator = Circle::new(Complex::new(0.0, 0.0), 2.0);
+    // Simulation settings
+    let settings = Settings {
+        attractor: &Clifford::new(A, B, C, D),
+        generator: &Gaussian::new(Complex::new(CENTRE[0], CENTRE[1]), STD_DEV),
 
-    let settings = Settings::new(
-        &attractor,
-        &generator,
-        OFFSET,
-        SCALE,
-        RESOLUTION,
-        NUM_SAMPLES,
-        NUM_GROUPS,
-        MAX_ITER,
-        WARMUP,
-    );
+        resolution: RESOLUTION,
+        offset: OFFSET,
+        scale: SCALE,
+
+        num_samples: NUM_SAMPLES,
+        num_groups: NUM_GROUPS,
+
+        max_iter: MAX_ITER,
+        warmup: WARMUP,
+    };
 
     // Render the attractor
-    let data = render(&settings);
+    let data = &render(&settings);
 
-    // Normalise
-    let max = *data.iter().max().unwrap() as Precision;
+    // Normalise samples
+    let max = *data.iter().max().unwrap() as P;
     let data = if APPLY_LOG {
-        data.mapv(|v| (v as Precision).ln().max(0.0) / (max as Precision).ln())
+        data.mapv(|v| (v as P).ln().max(0.0) / (max as P).ln())
     } else {
-        data.mapv(|v| v as Precision / max as Precision)
+        data.mapv(|v| v as P / max as P)
     };
 
     // Colourise
-    let colours = COLOURS
-        .into_iter()
-        .map(|s| Lab::<Precision>::from_hex(s).unwrap())
-        .collect::<Vec<_>>();
+    let colours = CMAP.into_iter().map(|s| Lab::<P>::from_hex(s).unwrap()).collect::<Vec<_>>();
     let cmap = ColourMap::new_uniform(&colours);
 
-    let img = Transform::Rotate90 * data.mapv(|v| cmap.sample(v as Precision));
+    let img = Transform::Rotate90 * data.mapv(|v| cmap.sample(v as P));
     img.save(format!("{}/{}", OUTPUT_DIR, IMAGE_NAME)).unwrap();
 }

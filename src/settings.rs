@@ -1,54 +1,39 @@
-use num_traits::Float;
-use std::marker::PhantomData;
+//! Configuration settings for attractor rendering.
+//!
+//! This module provides a structure to configure the parameters for rendering
+//! attractors, including resolution, scale, and sampling methods.
 
 use crate::{Attractor, Generator};
 
-pub struct Settings<'a, T, A: Attractor<T>, G: Generator<T>> {
-    pub attractor: &'a A,
+/// Configuration settings for rendering.
+#[expect(
+    clippy::exhaustive_structs,
+    reason = "Settings struct is expected to be constructed directly."
+)]
+pub struct Settings<'a, T, G: Generator<T>> {
+    // Scientific parameters
+    /// Reference to the attractor being rendered.
+    pub attractor: Box<dyn Attractor<T> + Sync>,
+    /// Reference to the generator used for sampling initial points.
     pub generator: &'a G,
 
+    // Rendering parameters
+    /// Resolution of the output image [height, width].
+    pub resolution: [usize; 2],
+    /// Offset of the rendering viewport in the complex plane [real, imag].
     pub offset: [T; 2],
+    /// Scale factor for the rendering viewport (scales imaginary axis directly, real axis is scaled by the aspect ratio set by `resolution`).
     pub scale: T,
 
-    pub resolution: [usize; 2],
+    // Processing parameters
+    /// Number of sample points to generate.
     pub num_samples: usize,
+    /// Number of parallel groups for multi-threaded rendering.
     pub num_groups: usize,
 
+    // Simulation parameters
+    /// Maximum number of iterations per sample point.
     pub max_iter: usize,
+    /// Number of warmup iterations before plotting point positions.
     pub warmup: usize,
-
-    _precision: PhantomData<T>,
-}
-
-impl<'a, T: Float, A: Attractor<T>, G: Generator<T>> Settings<'a, T, A, G> {
-    pub fn new(
-        attractor: &'a A,
-        generator: &'a G,
-        offset: [T; 2],
-        scale: T,
-        resolution: [usize; 2],
-        num_samples: usize,
-        num_groups: usize,
-        max_iter: usize,
-        warmup: usize,
-    ) -> Self {
-        debug_assert!(scale > T::zero(), "Scale must be greater than 0");
-        debug_assert!(resolution[0] > 0, "Resolution X must be greater than 0");
-        debug_assert!(resolution[1] > 0, "Resolution Y must be greater than 0");
-        debug_assert!(num_samples > 0, "Number of samples must be greater than 0");
-        debug_assert!(num_groups > 0, "Number of groups must be greater than 0");
-        debug_assert!(max_iter > 0, "Max iterations must be greater than 0");
-        Self {
-            attractor,
-            generator,
-            offset,
-            scale,
-            resolution,
-            num_samples,
-            num_groups,
-            max_iter,
-            warmup,
-            _precision: PhantomData,
-        }
-    }
 }

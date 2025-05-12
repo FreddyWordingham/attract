@@ -2,21 +2,30 @@
 name = "attract"
 version = "0.0.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/FreddyWordingham/attract"
+description = "A small library for visualsing dynamical systems, particularly strange attractors."
+keywords = [
+    "attractors",
+    "dynamical-systems",
+    "mathematics",
+    "simulation",
+    "visualization",
+]
+categories = ["mathematics", "science", "simulation", "visualization"]
 
 [dependencies]
 indicatif = { version = "0.17.11", features = ["rayon"] }
 nalgebra = { version = "0.33.2", features = ["rayon"] }
-nav = "0.1.6"
 ndarray = { version = "0.16.1", features = ["rayon"] }
 num-traits = "0.2.19"
 rand = "0.9.1"
 rayon = "1.10.0"
-serde = { version = "1.0.217", features = ["derive"] }
-serde_yaml = "0.9.34"
 
 [dev-dependencies]
 chromatic = "0.0.5"
 nav = { version = "0.1.6", features = ["array"] }
 photo = "3.1.1"
+serde = { version = "1.0.219", features = ["derive"] }
 serde_yaml = "0.9.34"
 vista = "0.0.2"
