@@ -35,7 +35,7 @@ where
     StandardUniform: Distribution<T>,
 {
     #[inline]
-    fn sample(&self, rng: &mut impl Rng) -> Complex<T> {
+    fn sample<R: Rng>(&self, rng: &mut R) -> Complex<T> {
         let u1: T = rng.random();
         let u2: T = rng.random();
         let r = (T::from(-2).unwrap() * u1.ln()).sqrt() * self.std_dev;

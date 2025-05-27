@@ -31,7 +31,7 @@ impl<T: Float> Aabb<T> {
 
 impl<T: Float + SampleUniform> Generator<T> for Aabb<T> {
     #[inline]
-    fn sample(&self, rng: &mut impl Rng) -> Complex<T> {
+    fn sample<R: Rng>(&self, rng: &mut R) -> Complex<T> {
         let re = rng.random_range(T::from(-self.half_size.re).unwrap()..T::from(self.half_size.re).unwrap());
         let im = rng.random_range(T::from(-self.half_size.im).unwrap()..T::from(self.half_size.im).unwrap());
         self.centre + Complex::new(re, im)

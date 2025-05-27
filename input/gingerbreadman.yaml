@@ -1,24 +1,21 @@
-attractor: !Clifford
-  a: !Fixed -1.4
-  b: !Fixed 1.6
-  c: !Fixed 1.3
-  d: !Fixed 0.7
+attractor: !Gingerbreadman
 generator: !Gaussian
   centre: [0.0, 0.0]
   std_dev: 1.0
 num_frames: 1
 rendering:
   resolution: [1024, 1024]
-  offset: [0.0, 0.0]
-  scale: 5.0
+  offset: [3.0, 3.0]
+  scale: 30.0
 processing:
-  num_samples: 1000000
+  num_samples: 100000
   num_groups: 100
 post_processing:
   apply_log: true
   colour_map: "magma"
   output_dir: "output"
-  image_name: "clifford.png"
+  image_name: "gingerbreadman.png"
+  transform: "Rotate180"
 simulation:
   max_iter: 10000
   warmup: 1000

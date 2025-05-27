@@ -29,7 +29,7 @@ impl<T: Float> Circle<T> {
 
 impl<T: Float + FloatConst + SampleUniform> Generator<T> for Circle<T> {
     #[inline]
-    fn sample(&self, rng: &mut impl Rng) -> Complex<T> {
+    fn sample<R: Rng>(&self, rng: &mut R) -> Complex<T> {
         let theta = rng.random_range(T::zero()..T::TAU());
         let rho = rng.random_range(T::zero()..self.radius).sqrt();
         let re = self.centre.re + rho * theta.cos();

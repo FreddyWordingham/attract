@@ -10,12 +10,12 @@ use crate::{Attractor, Generator};
     clippy::exhaustive_structs,
     reason = "Settings struct is expected to be constructed directly."
 )]
-pub struct Settings<'a, T, G: Generator<T>> {
+pub struct Settings<'a, T> {
     // Scientific parameters
     /// Reference to the attractor being rendered.
     pub attractor: Box<dyn Attractor<T> + Sync>,
     /// Reference to the generator used for sampling initial points.
-    pub generator: &'a G,
+    pub generator: &'a Generator<T>,
 
     // Rendering parameters
     /// Resolution of the output image [height, width].

@@ -6,12 +6,15 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use nalgebra::Complex;
 use ndarray::Array2;
-use num_traits::{Float, FromPrimitive, NumCast};
-use rand::rng;
+use num_traits::{Float, FloatConst, FromPrimitive, NumCast};
+use rand::{
+    distr::{Distribution, StandardUniform, uniform::SampleUniform},
+    rng,
+};
 use rayon::prelude::*;
 use std::sync::Arc;
 
-use crate::{Attractor, Generator, Settings};
+use crate::{Attractor, Settings};
 
 /// Create a lambda function to map a position in the complex plane to a pixel in the image.
 #[inline]
@@ -48,9 +51,10 @@ fn create_position_to_pixel_mapper<T: Send + Sync + Float + NumCast>(
 ///
 /// This function will not panic.
 #[inline]
-pub fn render<T, G: Sync + Generator<T>>(settings: &Settings<T, G>) -> Array2<u32>
+pub fn render<T>(settings: &Settings<T>) -> Array2<u32>
 where
-    T: Float + NumCast + FromPrimitive + Send + Sync,
+    T: Float + FloatConst + SampleUniform + NumCast + FromPrimitive + Send + Sync,
+    StandardUniform: Distribution<T>,
 {
     let progress_bar = ProgressBar::new(u64::try_from(settings.num_samples).unwrap());
     progress_bar.set_style(
@@ -78,9 +82,10 @@ where
 
 /// Single-threaded rendering of the attractor.
 #[inline]
-fn render_group<T, G: Sync + Generator<T>>(settings: &Settings<T, G>, progress_bar: &Arc<ProgressBar>) -> Array2<u32>
+fn render_group<T>(settings: &Settings<T>, progress_bar: &Arc<ProgressBar>) -> Array2<u32>
 where
-    T: Float + NumCast + FromPrimitive + Send + Sync,
+    T: Float + FloatConst + SampleUniform + NumCast + FromPrimitive + Send + Sync,
+    StandardUniform: Distribution<T>,
 {
     let offset = Complex::new(settings.offset[0], settings.offset[1]);
     let mapper = create_position_to_pixel_mapper(offset, settings.scale, settings.resolution);

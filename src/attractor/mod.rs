@@ -6,13 +6,23 @@
 
 use nalgebra::Complex;
 
+mod chirikov;
 mod clifford;
 mod de_jong;
+mod duffing;
+mod gingerbreadman;
 mod henon;
+mod ikdea;
+mod tinkerbell;
 
+pub use chirikov::Chirikov;
 pub use clifford::Clifford;
 pub use de_jong::DeJong;
+pub use duffing::Duffing;
+pub use gingerbreadman::Gingerbreadman;
 pub use henon::Henon;
+pub use ikdea::Ikeda;
+pub use tinkerbell::Tinkerbell;
 
 /// Trait defining the interface for attractor implementations.
 pub trait Attractor<T> {

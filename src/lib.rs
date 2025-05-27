@@ -94,6 +94,7 @@
     reason = "Traits should be able to provide default method implementations."
 )]
 #![allow(clippy::mod_module_files, reason = "Prefer to use mod.rs files for consistency.")]
+#![allow(clippy::new_without_default, reason = "Some types do not require a default constructor.")]
 #![allow(clippy::pub_use, reason = "It is intended to expose some types at the crate level.")]
 #![allow(
     clippy::pub_with_shorthand,
@@ -123,7 +124,7 @@ mod generator;
 mod render;
 mod settings;
 
-pub use attractor::{Attractor, Clifford, DeJong, Henon};
-pub use generator::{Aabb, Circle, Gaussian, Generator};
+pub use attractor::{Attractor, Chirikov, Clifford, DeJong, Duffing, Gingerbreadman, Henon, Ikeda, Tinkerbell};
+pub use generator::Generator;
 pub use render::render;
 pub use settings::Settings;

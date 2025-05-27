@@ -1,24 +1,20 @@
 attractor: !Henon
-  a: !Slide
-    - 1.4
-    - 1.6
-  b: !Slide
-    - 0.4
-    - 0.5
-num_frames: 100
+  a: !Fixed 1.4
+  b: !Fixed 0.3
+generator: !Gaussian
+  centre: [0.0, 0.0]
+  std_dev: 1.0
+num_frames: 1
 rendering:
-  resolution: [256, 256]
+  resolution: [1024, 1024]
   offset: [0.0, 0.0]
-  scale: 5.0
-colour_map:
-  - "#000000"
-  - "#FFFFFF"
+  scale: 3.0
 processing:
-  num_samples: 1000
+  num_samples: 1000000
   num_groups: 100
 post_processing:
   apply_log: true
-  colour_map: "viridis"
+  colour_map: "greyscale"
   output_dir: "output"
   image_name: "henon.png"
 simulation:

@@ -24,7 +24,7 @@ rayon = "1.10.0"
 
 [dev-dependencies]
 chromatic = "0.0.5"
-nav = { version = "0.1.6", features = ["array"] }
+nav = { version = "0.1.7", features = ["array", "serde"] }
 photo = "3.1.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_yaml = "0.9.34"

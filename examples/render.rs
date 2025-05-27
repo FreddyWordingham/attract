@@ -1,15 +1,15 @@
-use attract::{Gaussian, Settings, render};
-use chromatic::{Colour, ColourMap, Lab};
-use nalgebra::Complex;
+use attract::{Settings, render};
 use photo::Image;
 use serde_yaml::from_str;
 use std::{env::args, fs::read_to_string, process::exit};
 
-#[path = "./common.rs"]
+#[path = "./common/mod.rs"]
 mod common;
-use common::*;
+use common::prelude::*;
 
 type Precision = f32;
+
+const COLOUR_MAP_FILE: &str = "input/colour_maps.yaml";
 
 fn read_parameters_filepath() -> String {
     let args: Vec<String> = args().collect();
@@ -26,14 +26,16 @@ fn main() {
     let config_str = read_to_string(config_filepath).unwrap();
     let config = from_str::<Configuration<Precision>>(&config_str).unwrap();
 
-    // Build reusable objects
-    let generator = Gaussian::new(Complex::new(0.0, 0.0), 1.0);
-    let colours = get_colour_map(config.post_processing.colour_map.as_str())
-        .unwrap()
-        .iter()
-        .map(|s| Lab::<Precision>::from_hex(s).unwrap())
-        .collect::<Vec<_>>();
-    let cmap = ColourMap::new_uniform(&colours);
+    // Load colour maps
+    let colour_maps_str = read_to_string(COLOUR_MAP_FILE).unwrap();
+    let colour_maps: ColourMaps = from_str(&colour_maps_str).unwrap();
+    let cmap = colour_maps.build(config.post_processing.colour_map.as_str());
+
+    // Build the generator
+    let generator = config.generator.build();
+
+    // Calculate name length
+    let filename_length = (config.num_frames - 1).to_string().len();
 
     // Generate each frame
     for n in 0..config.num_frames {
@@ -52,7 +54,12 @@ fn main() {
         };
 
         // Render the attractor
-        let data = &render(&settings);
+        let mut data = render(&settings);
+
+        // If a transform is specified, apply it
+        if let Some(transform) = &config.post_processing.transform {
+            data = *transform * data;
+        }
 
         // Normalise samples
         let max = *data.iter().max().unwrap() as Precision;
@@ -67,7 +74,12 @@ fn main() {
 
         // Save the image
         let mut filename = format!("{}/{}", config.post_processing.output_dir, config.post_processing.image_name);
-        filename = filename.replace(".png", &format!("_{:06}.png", n));
+        let suffix = if config.num_frames > 1 {
+            format!("_{:0width$}.png", n, width = filename_length)
+        } else {
+            ".png".to_string()
+        };
+        filename = filename.replace(".png", &suffix);
         img.save(filename).unwrap();
     }
 }

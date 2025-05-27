@@ -314,12 +314,13 @@ dependencies = [
 
 [[package]]
 name = "nav"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0c5972219404a0fe0e03a930f692e0f841aeae89287bd1cba7ec7485cb010b"
+checksum = "2d98f6a5d301c562e1729e94b87ba7024e44b5a1cd7a843ff69774541b7f4bb8"
 dependencies = [
  "ndarray",
  "num_enum",
+ "serde",
 ]
 
 [[package]]
